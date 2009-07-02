@@ -4,6 +4,7 @@
 Command for getting SSH host information from DNS\
 """
 
+import logging
 import os
 import re
 import shlex
@@ -16,12 +17,17 @@ from tempfile import NamedTemporaryFile
 
 FAKE_HOSTNAME = 'ssh_dns'
 
+LOG_FORMAT = "%(message)s"
+logging.basicConfig(stream=sys.stdout, format=LOG_FORMAT)
+
 def connect(filename, command='ssh', args=''):
     command = '%s -F %s %s %s' % (command, filename, args, FAKE_HOSTNAME)
+    logging.debug(command)
     os.system(command)
 
 def dig(hostname, section='a'):
     command = 'dig %s %s +short' % (hostname, section)
+    logging.debug('DNS query: %s' % (command,))
     return run_command(command)
 
 def get_device_info(hostname):
@@ -63,8 +69,15 @@ if __name__ == '__main__':
                       help='Append this domain to the given host')
     parser.add_option('-m', '--merge-config', action='append',
                       help='Merge the given config from ~/.ssh/config')
+    parser.add_option('-v', '--verbose', action='store_true',
+                      help='Whether to show additional information')
 
     options, args = parser.parse_args()
+
+    if options.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
 
     try:
         hostname = args[0].lower()
@@ -98,5 +111,10 @@ if __name__ == '__main__':
         fobj.write('  %s %s\n' % (k, v))
 
     fobj.flush()
+
+    if options.verbose:
+        logging.debug('%s:' % (fobj.name,))
+        fobj.seek(0,0)
+        logging.debug(fobj.read())
 
     connect(fobj.name, command=options.command)
