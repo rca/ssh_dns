@@ -9,6 +9,7 @@ import re
 import shlex
 import sys
 
+from itertools import imap
 from optparse import OptionParser
 from subprocess import Popen, PIPE
 from tempfile import NamedTemporaryFile
