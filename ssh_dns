@@ -175,7 +175,7 @@ if __name__ == '__main__':
 
         for item in options.merge_config:
             config = ssh_config.get(item)
-            if item:
+            if config:
                 info.update(config)
             else:
                 print 'WARNING: config %s not found' % (item,)
