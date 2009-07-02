@@ -117,4 +117,4 @@ if __name__ == '__main__':
         fobj.seek(0,0)
         logging.debug(fobj.read())
 
-    connect(fobj.name, command=options.command)
+    connect(fobj.name, command=options.command, args=' '.join(args[1:]))
