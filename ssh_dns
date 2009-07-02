@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+"""%s [options] <hostname>
+
+Command for getting SSH host information from DNS\
+"""
+
+import os
+import re
+import shlex
+import sys
+
+from optparse import OptionParser
+from subprocess import Popen, PIPE
+from tempfile import NamedTemporaryFile
+
+FAKE_HOSTNAME = 'ssh_dns'
+
+def connect(filename, command='ssh', args=''):
+    command = '%s -F %s %s %s' % (command, filename, args, FAKE_HOSTNAME)
+    os.system(command)
+
+def dig(hostname, section='a'):
+    command = 'dig %s %s +short' % (hostname, section)
+    return run_command(command)
+
+def get_device_info(hostname):
+    response = dig(hostname, section='txt')[0]
+    return dict([x.split(':', 1) for x in response.split(',')])
+
+def parse_ssh_config(path):
+    hosts = {}
+    fobj = open(path, 'rb')
+
+    info = {}
+    for line in imap(str.strip, fobj):
+        if line == '' or line.startswith('#'): continue
+
+        if line.startswith('Host ') and info:
+            hosts[info['Host']] = info
+            info = {}
+
+        line_split = line.split(' ')
+        info[line_split[0]] = line_split[1]
+
+    if info:
+        hosts[info['Host']] = info
+
+    return hosts
+
+def run_command(command):
+    pipe = Popen(shlex.split(command), stdin=None, stdout=PIPE, close_fds=True)
+    return pipe.communicate()[0].splitlines()
+
+if __name__ == '__main__':
+    parser = OptionParser(__doc__ % (os.path.basename(sys.argv[0]),))
+    parser.add_option('-c', '--command', default='ssh',
+                      help='Command to run, default: ssh')
+    parser.add_option('-d', '--domain',
+                      help='Append this domain to the given host')
+    parser.add_option('-m', '--merge-config', action='append',
+                      help='Merge the given config from ~/.ssh/config')
+
+    options, args = parser.parse_args()
+
+    try:
+        hostname = args[0].lower()
+    except IndexError:
+        parser.print_help()
+        sys.exit('Error: no hostname given')
+
+    domain = options.domain
+    if domain and domain.lower() not in hostname:
+        hostname += '.%s' % (domain,)
+
+    info = get_device_info(hostname)
+
+    if options.merge_config:
+        path = os.path.expanduser('~/.ssh/config')
+        ssh_config = parse_ssh_config(path)
+
+        for item in options.merge_config:
+            config = ssh_config.get(item)
+            if item:
+                info.update(config)
+            else:
+                print 'WARNING: config %s not found' % (item,)
+
+    info.pop('Host', None)
+
+    fobj = NamedTemporaryFile()
+
+    fobj.write('Host %s\n' % (FAKE_HOSTNAME,))
+    for k, v in info.iteritems():
+        fobj.write('  %s %s\n' % (k, v))
+
+    fobj.flush()
+
+    connect(fobj.name, command=options.command)
