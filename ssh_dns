@@ -25,6 +25,9 @@ def dig(hostname, section='a'):
 
 def get_device_info(hostname):
     response = dig(hostname, section='txt')[0]
+    for char in '"':
+        response = response.replace(char, '')
+
     return dict([x.split(':', 1) for x in response.split(',')])
 
 def parse_ssh_config(path):
