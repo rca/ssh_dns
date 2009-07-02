@@ -112,7 +112,13 @@ def get_device_info(hostname):
     Create a dictionary from the DNS TXT entry
     """
 
-    response = dig(hostname, section='txt')[0]
+    response = dig(hostname, section='txt')
+    if not response:
+        logging.error('Unable to find DNS entry for %s' % (hostname,))
+        return {}
+
+    response = response[0]
+
     for char in '"':
         response = response.replace(char, '')
 
