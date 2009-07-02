@@ -78,6 +78,17 @@ FAKE_HOSTNAME = 'ssh_dns'
 LOG_FORMAT = "%(message)s"
 logging.basicConfig(stream=sys.stdout, format=LOG_FORMAT)
 
+def check_domain(hostname, domain):
+    """
+    if the given hostname does not contain the given domain, return
+    hostname.domain
+    """
+
+    if domain and domain.lower() not in hostname:
+        hostname += '.%s' % (domain,)
+
+    return hostname
+
 def connect(filename, command='ssh', args=''):
     """
     Shell out to ssh for the final connection.
@@ -164,8 +175,7 @@ if __name__ == '__main__':
         sys.exit('Error: no hostname given')
 
     domain = options.domain
-    if domain and domain.lower() not in hostname:
-        hostname += '.%s' % (domain,)
+    hostname = check_domain(hostname, domain)
 
     info = get_device_info(hostname)
 
@@ -178,7 +188,14 @@ if __name__ == '__main__':
             if config:
                 info.update(config)
             else:
-                print 'WARNING: config %s not found' % (item,)
+                # try to find entry in DNS
+                t_item = check_domain(item, domain)
+                t_info = get_device_info(t_item)
+
+                if t_info:
+                    info.update(t_info)
+                else:
+                    print 'WARNING: config %s not found' % (item,)
 
     info.pop('Host', None)
 
