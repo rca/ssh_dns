@@ -31,7 +31,35 @@
 
 """%s [options] <hostname>
 
-Command for getting SSH host information from DNS\
+Command for getting SSH host information from DNS.
+
+This command will retrieve SSH connection parameters from TXT entries in DNS.
+The DNS entries should be in the following format:
+
+key1:value1,key2:value2[,...]
+
+For example:
+
+Hostname:foo.com,Port:10022,User:foo
+
+Any setting found in the ssh_config manpage is okay to add to this entry.
+
+If that DNS entry was named, "bar" in the domain "foo.com", you could use
+the following command:
+
+ssh_dns bar.foo.com
+
+That will, essentially, run the following command:
+
+ssh -p 10022 foo@foo.com
+
+The benefit of this command is realized when there are many ssh aliases you
+want to share with a large group of people.  It would be possible to keep all
+these entries in /etc/ssh/ssh_config or in one's local ~/.ssh/config file, but
+the former requires everyone to have access to the machine with this config
+file and the latter becomes a maintenance headache to keep everyone's local
+config up to date.  Using DNS, it's possible to update a central location and
+have everyone reference it.\
 """
 
 import logging
